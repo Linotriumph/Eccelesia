@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String              @id @default(cuid())
+  firstName       String
+  middleName      String?
+  lastName        String
+  email           String              @unique
+  password        String
+  emailVerified   Boolean             @default(false)
+  createdAt       DateTime            @default(now())
+  sessions        Session[]
+  emailVerifications EmailVerification[]
+  subscription    Subscription?
+  paymentLogs     PaymentLog[]
+}
+
+model Subscription {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flwPlanId           Int
+  flwSubscriptionId   Int?
+  planSlug            String
+  amount              Int
+  currency            String    @default("NGN")
+  status              String    @default("active")
+  flwCustomerEmail    String
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  canceledAt          DateTime?
+  cancelReason        String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  paymentLogs         PaymentLog[]
+}
+
+model PaymentLog {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  txRef          String       @unique
+  flwTxId        Int?
+  amount         Int
+  currency       String       @default("NGN")
+  planSlug       String?
+  status         String
+  source         String       @default("recurring")
+  createdAt      DateTime     @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model EmailVerification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String?
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  expiredAt DateTime?
+  createdAt DateTime @default(now())
+}
